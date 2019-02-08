@@ -17,7 +17,7 @@ import Haskus.Utils.Types.List
 
 import Prelude hiding ((>>=),(>>),return)
 
-(>>=) :: forall x xs ys. 
+(>>=) :: forall x xs ys.
    ( KnownNat (Length ys)
    ) => V (x ': xs) -> (x -> V ys) -> V (Concat ys xs)
 (>>=) = bindVariant

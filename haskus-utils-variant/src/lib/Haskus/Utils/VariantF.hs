@@ -60,14 +60,14 @@ import GHC.Exts (Any,Constraint)
 import Control.DeepSeq
 
 -- | Recursive Functor-like Variant
-newtype VariantF (xs :: [* -> *]) e
+newtype VariantF (xs :: [k -> *]) e
    = VariantF (V (ApplyAll e xs))
 
 -- | Apply its first argument to every element of the 2nd arg list
 --
 -- > ApplyAll e '[f,g,h] ==> '[f e, g e, h e]
 --
-type family ApplyAll e (xs :: [* -> k]) :: [k] where
+type family ApplyAll e (xs :: [k1 -> k2]) :: [k2] where
    ApplyAll e '[]       = '[]
    ApplyAll e (f ': fs) = f e ': ApplyAll e fs
 

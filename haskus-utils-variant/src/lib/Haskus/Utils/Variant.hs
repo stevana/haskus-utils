@@ -15,6 +15,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE PolyKinds #-}
 
 -- | Open sum type
 module Haskus.Utils.Variant
@@ -127,7 +128,7 @@ import Haskus.Utils.Types.List
 
 -- | A variant contains a value whose type is at the given position in the type
 -- list
-data V (l :: [*]) = Variant {-# UNPACK #-} !Word Any
+data V (l :: [k]) = Variant {-# UNPACK #-} !Word Any
 
 -- Make GHC consider `l` as a representational parameter to make coercions
 -- between Variant values unsafe
@@ -248,7 +249,7 @@ instance ShowTypeList (V '[]) where
 
 instance (Typeable x, ShowTypeList (V xs)) => ShowTypeList (V (x ': xs)) where
    {-# INLINE showTypeList #-}
-   showTypeList _ = showsPrec 0 (typeOf (undefined :: x)) : showTypeList (undefined :: V xs)
+   showTypeList _ = showsPrec 0 (typeRep (Proxy :: Proxy x)) : showTypeList (undefined :: V xs)
 
 -- | Get Variant index
 --
@@ -433,7 +434,7 @@ mapVariantAtM f v@(Variant t a) =
       Just x  -> Variant t <$> unsafeCoerce (f x)
 
 -- | Bind (>>=) for a Variant
-bindVariant :: forall x xs ys.
+bindVariant :: forall x (xs :: [*]) (ys :: [*]).
    ( KnownNat (Length ys)
    ) => V (x ': xs) -> (x -> V ys) -> V (Concat ys xs)
 {-# INLINABLE bindVariant #-}
@@ -442,11 +443,10 @@ v `bindVariant` f  = case popVariantHead v of
    Left  xs -> prependVariant @ys xs
 
 -- | Const bind (>>) for a Variant
-constBindVariant :: forall xs ys.
+constBindVariant :: forall (xs :: [*]) (ys :: [*]).
    V xs -> V ys -> V (Concat ys xs)
 {-# INLINABLE constBindVariant #-}
 _ `constBindVariant` v2 = appendVariant @xs v2
-
 
 -- | List-like catamorphism
 --
@@ -935,7 +935,7 @@ traverseVariant :: forall c (a :: [*]) m.
    , Monad m
    ) => (forall x. c x => x -> m x) -> V a  -> m (V a)
 {-# INLINABLE traverseVariant #-}
-traverseVariant f (Variant t a) = 
+traverseVariant f (Variant t a) =
    Variant t <$> traverseVariant' @c @a f t a
 
 -- | Traverse a variant. You need to specify the constraints required by the
